@@ -6,7 +6,7 @@ import weakref
 class TreeSubWrapper:
     def __init__(self):
         self._bot_ref = None
-        self.commands = {}
+        self.groups = {}
 
     @property
     def bot(self):
@@ -17,27 +17,46 @@ class TreeSubWrapper:
     def set_bot(self, bot: discord.Client):
         self._bot_ref = weakref.ref(bot)
 
-    def command(self, *, group: str = "default", **kwargs):
+    def command(self, *, groups=None, name: str, description: str):
+        """
+        Decorator to create commands with multiple groups to mimic a spaced structure.
+        :param groups: Either a single group name (str) or a list of group names (list).
+        :param name: Command name.
+        :param description: Command description.
+        """
         def decorator(func):
             if self.bot is None:
                 raise RuntimeError("Bot object is not initialized. Please initialize with discord.Client or Bot.")
 
-            if group not in self.commands:
-                self.commands[group] = app_commands.Group(
-                    name=group,
-                    description=f"{group} command group"
-                )
-                self.bot.tree.add_command(self.commands[group])
+            parent = self.bot.tree
+
+            if isinstance(groups, str):
+                groups_list = [groups]
+            elif isinstance(groups, list):
+                groups_list = groups
+            else:
+                groups_list = []
+
+            for group_name in groups_list:
+                if group_name not in self.groups:
+                    new_group = app_commands.Group(
+                        name=group_name,
+                        description=f"{group_name} command group"
+                    )
+                    self.groups[group_name] = new_group
+                    parent.add_command(new_group)
+                parent = self.groups[group_name]
 
             command = app_commands.Command(
-                name=kwargs.pop("name", func.__name__),
+                name=name,
                 callback=func,
-                **kwargs
+                description=description
             )
-            self.commands[group].add_command(command)
+            parent.add_command(command)
             return func
 
         return decorator
+
 
 tree_sub = TreeSubWrapper()
 
