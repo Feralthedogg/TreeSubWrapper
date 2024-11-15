@@ -1,19 +1,21 @@
 # TreeSubWrapper
 
-TreeSubWrapper is a Python utility that simplifies the creation of subcommands for Discord bots using the `discord.py` library. It extends the functionality of `app_commands` to organize commands into intuitive groups. This library is designed to work seamlessly with both `discord.Client` and `discord.ext.commands.Bot` objects.
+TreeSubWrapper is a Python utility designed to simplify the creation of subcommands for Discord bots using the `discord.py` library. It extends the functionality of `app_commands` by enabling nested groups and intuitive command organization. This library integrates seamlessly with both `discord.Client` and `discord.ext.commands.Bot` objects.
+
+---
 
 ## Features
 
 - Simple subcommand creation using the `@tree_sub.command` decorator.
-- Automatically organizes commands into logical structures.
-- Fully compatible with `discord.py`'s `app_commands` API.
+- Support for nested groups to mimic hierarchical command structures.
+- Compatible with `discord.py`'s `app_commands` API.
 - Works with both `discord.Client` and `commands.Bot`.
 
 ---
 
 ## Installation
 
-Copy the `TreeSubWrapper` class and its dependencies into your project, or package it as a module if needed.
+Copy the `TreeSubWrapper` class into your project and use it directly.
 
 ---
 
@@ -21,7 +23,7 @@ Copy the `TreeSubWrapper` class and its dependencies into your project, or packa
 
 ### Import and Initialization
 
-To use `TreeSubWrapper`, simply import the `tree_sub` instance and initialize it.
+To use `TreeSubWrapper`, import the `tree_sub` instance and initialize it with your bot.
 
 ```python
 import discord
@@ -42,19 +44,27 @@ async def on_ready():
 
 ### Creating Subcommands
 
-Define subcommands using the `@tree_sub.command` decorator. Grouping is handled by specifying the `group` argument.
+#### Single Group Command
+
+Define subcommands within a single group:
 
 ```python
 @tree_sub.command(
-    group="example",
+    groups="example",
     name="say",
     description="Repeats the text you provide"
 )
 async def say(interaction: discord.Interaction, text: str):
     await interaction.response.send_message(f"You said: {text}")
+```
 
+#### Nested Group Command
+
+Use multiple groups to create a nested command structure:
+
+```python
 @tree_sub.command(
-    group="example",
+    groups=["example", "nested"],
     name="shout",
     description="Shouts the text in uppercase"
 )
@@ -78,7 +88,7 @@ bot = Bot(command_prefix="!", intents=INTENTS)
 tree_sub.set_bot(bot)
 
 @tree_sub.command(
-    group="test",
+    groups="test",
     name="hello",
     description="Sends a greeting"
 )
@@ -90,52 +100,40 @@ bot.run("TOKEN")
 
 ---
 
-## Classes
+## API Reference
 
 ### `TreeSubWrapper`
 
 - **Purpose**: Handles subcommand grouping and registration.
 - **Methods**:
   - `set_bot(bot: discord.Client)`: Connects the `TreeSubWrapper` to a bot instance.
-  - `command(group: str = "default", **kwargs)`: Decorator for defining subcommands.
-
-### `TreeSubBot`
-
-- **Extends**: `commands.Bot`
-- Automatically initializes `tree_sub` with the bot instance.
-
-### `TreeSubClient`
-
-- **Extends**: `discord.Client`
-- Automatically initializes `tree_sub` with the client instance.
+  - `command(groups=None, name: str, description: str)`: Decorator for defining subcommands.
 
 ---
 
-## Example Project
+## Example Commands
 
+### Command with Single Group
 ```python
-import discord
-from discord.ext import commands
-from TreeSubWrapper import tree_sub
-
-INTENTS = discord.Intents.all()
-bot = commands.Bot(command_prefix="!", intents=INTENTS)
-tree_sub.set_bot(bot)
-
-@bot.event
-async def on_ready():
-    print(f"{bot.user} is now online!")
-    await bot.tree.sync()
-
 @tree_sub.command(
-    group="math",
-    name="add",
-    description="Adds two numbers"
+    groups="utilities",
+    name="ping",
+    description="Check the bot's latency"
 )
-async def add(interaction: discord.Interaction, a: int, b: int):
-    await interaction.response.send_message(f"The sum of {a} and {b} is {a + b}")
+async def ping(interaction: discord.Interaction):
+    await interaction.response.send_message("Pong!")
+```
 
-bot.run("TOKEN")
+### Command with Nested Groups
+```python
+@tree_sub.command(
+    groups=["admin", "tools"],
+    name="restart",
+    description="Restarts the bot"
+)
+async def restart(interaction: discord.Interaction):
+    await interaction.response.send_message("Restarting...")
+    # Add restart logic here
 ```
 
 ---
@@ -145,20 +143,19 @@ bot.run("TOKEN")
 ### Common Errors
 
 1. **"Bot object is not initialized"**:
-   - Ensure you use `TreeSubBot`, `TreeSubClient`, or call `tree_sub.set_bot(bot)` before using `@tree_sub.command`.
+   - Ensure you use `TreeSubWrapper.set_bot(bot)` before defining commands.
 
 2. **Command not working**:
-   - Check if `await bot.tree.sync()` is called in the `on_ready` event.
+   - Ensure `await bot.tree.sync()` is called in the `on_ready` event.
 
 ---
 
 ## Contributing
 
-Feel free to submit issues or pull requests to enhance the library!
+If you encounter issues or have ideas for new features, feel free to open an issue or submit a pull request.
 
 ---
 
 ## License
 
 This project is licensed under the MIT License. See the LICENSE file for details.
-
