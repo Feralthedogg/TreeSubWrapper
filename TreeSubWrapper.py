@@ -1,32 +1,62 @@
+# TreeSubWrapper.py
+
 import discord
 from discord.ext.commands import Bot
 from discord import app_commands
 import weakref
+import asyncio
+
+class BotNotInitializedError(Exception):
+    pass
 
 class TreeSubWrapper:
     def __init__(self):
         self._bot_ref = None
         self.groups = {}
+        self._commands_to_sync = []
+        self.sync_guilds = None
+        self.initial_settings = {}
+
+    async def __aenter__(self):
+        if self._bot_ref is None or self._bot_ref() is None:
+            raise BotNotInitializedError(
+                "Bot object is not initialized. Please set the bot before using the context manager."
+            )
+        return self
+
+    async def __aexit__(self, exc_type, exc_value, traceback):
+        await self.bot.wait_until_ready()
+        if self.sync_guilds:
+            for guild in self.sync_guilds:
+                await self.bot.tree.sync(guild=guild)
+        else:
+            await self.bot.tree.sync()
+        self.groups.clear()
+        self._commands_to_sync.clear()
 
     @property
     def bot(self):
         if self._bot_ref is None or self._bot_ref() is None:
-            raise RuntimeError("Bot object is not initialized. Please use TreeSubBot or TreeSubClient.")
+            raise BotNotInitializedError(
+                "Bot object is not initialized. Please use TreeSubBot or TreeSubClient."
+            )
         return self._bot_ref()
 
     def set_bot(self, bot: discord.Client):
         self._bot_ref = weakref.ref(bot)
 
+    def set_sync_guilds(self, guilds):
+        self.sync_guilds = guilds
+
+    def set_initial_settings(self, **settings):
+        self.initial_settings.update(settings)
+
     def command(self, *, groups=None, name: str, description: str):
-        """
-        Decorator to create commands with multiple groups to mimic a spaced structure.
-        :param groups: Either a single group name (str) or a list of group names (list).
-        :param name: Command name.
-        :param description: Command description.
-        """
         def decorator(func):
             if self.bot is None:
-                raise RuntimeError("Bot object is not initialized. Please initialize with discord.Client or Bot.")
+                raise BotNotInitializedError(
+                    "Bot object is not initialized. Please initialize with discord.Client or Bot."
+                )
 
             parent = self.bot.tree
 
@@ -53,10 +83,11 @@ class TreeSubWrapper:
                 description=description
             )
             parent.add_command(command)
+            self._commands_to_sync.append(command)
+
             return func
 
         return decorator
-
 
 tree_sub = TreeSubWrapper()
 
