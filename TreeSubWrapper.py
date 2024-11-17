@@ -69,6 +69,9 @@ class TreeSubWrapper:
 
             for group_name in groups_list:
                 if group_name not in self.groups:
+                    existing_command = parent.get_command(group_name)
+                    if existing_command:
+                        parent.remove_command(group_name)
                     new_group = app_commands.Group(
                         name=group_name,
                         description=f"{group_name} command group"
@@ -76,6 +79,10 @@ class TreeSubWrapper:
                     self.groups[group_name] = new_group
                     parent.add_command(new_group)
                 parent = self.groups[group_name]
+
+            existing_command = parent.get_command(name)
+            if existing_command:
+                parent.remove_command(name)
 
             command = app_commands.Command(
                 name=name,
